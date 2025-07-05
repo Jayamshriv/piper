@@ -1,29 +1,29 @@
-FROM debian:bullseye as build
-ARG TARGETARCH
-ARG TARGETVARIANT
+# FROM debian:bullseye as build
+# ARG TARGETARCH
+# ARG TARGETVARIANT
 
-ENV LANG C.UTF-8
-ENV DEBIAN_FRONTEND=noninteractive
+# ENV LANG C.UTF-8
+# ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install --yes --no-install-recommends \
-        build-essential cmake ca-certificates curl pkg-config git
+# RUN apt-get update && \
+#     apt-get install --yes --no-install-recommends \
+#         build-essential cmake ca-certificates curl pkg-config git
 
-WORKDIR /build
+# WORKDIR /build
 
-COPY ./ ./
-RUN cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install
-RUN cmake --build build --config Release
-RUN cmake --install build
+# COPY ./ ./
+# RUN cmake -Bbuild -DCMAKE_INSTALL_PREFIX=install
+# RUN cmake --build build --config Release
+# RUN cmake --install build
 
-# Do a test run
-RUN ./build/piper --help
+# # Do a test run
+# RUN ./build/piper --help
 
-# Build .tar.gz to keep symlinks
-WORKDIR /dist
-RUN mkdir -p piper && \
-    cp -dR /build/install/* ./piper/ && \
-    tar -czf "piper_${TARGETARCH}${TARGETVARIANT}.tar.gz" piper/
+# # Build .tar.gz to keep symlinks
+# WORKDIR /dist
+# RUN mkdir -p piper && \
+#     cp -dR /build/install/* ./piper/ && \
+#     tar -czf "piper_${TARGETARCH}${TARGETVARIANT}.tar.gz" piper/
 
 # -----------------------------------------------------------------------------
 
@@ -45,7 +45,18 @@ RUN mkdir -p piper && \
 #     if [ "${size}" -lt "1000" ]; then echo "File size is ${size} bytes"; exit 1; fi
 
 # -----------------------------------------------------------------------------
+FROM rhasspy/piper:latest
 
+# Create voice directory
+RUN mkdir -p /piper/voices/en_US/
+
+# Copy the model (you must download it locally first)
+COPY voices/en_US-amy-low.onnx /piper/voices/en_US/en_US-amy-low.onnx
+
+# Set default voice and HTTP server port
+EXPOSE 8000
+CMD ["--model", "en_US/en_US-amy-low.onnx", "--output_format", "wav", "--http", "--port", "8000"]
+# ------------------
 FROM scratch
 
 # COPY --from=test /test/piper_*.tar.gz /test/test.wav ./
